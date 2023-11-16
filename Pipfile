@@ -10,6 +10,10 @@ psycopg2-binary = "*"
 ipython-sql = "*"
 pandas = "*"
 python-dotenv = "*"
+pgspecial = "*"
+jupysql = "*"
+pyarrow = "*"
+ipywidgets = "*"
 
 [dev-packages]
 
