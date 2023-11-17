@@ -1,6 +1,13 @@
-# 🍽️ Case Study #1 - Danny's Diner
+# 🍽️ Case Study #1 - Danny's Diner <!-- omit from toc -->
 
-### Problem Statement
+- [1. Problem Statement](#1-problem-statement)
+- [2. Questions:](#2-questions)
+  - [2.1. What is the total amount each customer spent at the restaurant?](#21-what-is-the-total-amount-each-customer-spent-at-the-restaurant)
+  - [2.2. How many days has each customer visited the restaurant?](#22-how-many-days-has-each-customer-visited-the-restaurant)
+  - [2.3. What was the first item from the menu purchased by each customer?](#23-what-was-the-first-item-from-the-menu-purchased-by-each-customer)
+
+
+### 1. Problem Statement
 
 We're here to help Danny with his restaurant by providing insights using some data he has gathered.
 
@@ -11,44 +18,44 @@ Danny has shared with us 3 key datasets for this case study:
 Table 1: `sales`
 
 | customer_id | order_date | product_id |
-|:-----------:|:----------:|:----------:|
-| A           | 2021-01-01 | 1          |
-| A           | 2021-01-01 | 2          |
-| A           | 2021-01-07 | 2          |
-| A           | 2021-01-10 | 3          |
-| A           | 2021-01-11 | 3          |
-| A           | 2021-01-11 | 3          |
-| B           | 2021-01-01 | 2          |
-| B           | 2021-01-02 | 2          |
-| B           | 2021-01-04 | 1          |
-| B           | 2021-01-11 | 1          |
-| B           | 2021-01-16 | 3          |
-| B           | 2021-02-01 | 3          |
-| C           | 2021-01-01 | 3          |
-| C           | 2021-01-01 | 3          |
-| C           | 2021-01-07 | 3          |
+| :---------: | :--------: | :--------: |
+|      A      | 2021-01-01 |     1      |
+|      A      | 2021-01-01 |     2      |
+|      A      | 2021-01-07 |     2      |
+|      A      | 2021-01-10 |     3      |
+|      A      | 2021-01-11 |     3      |
+|      A      | 2021-01-11 |     3      |
+|      B      | 2021-01-01 |     2      |
+|      B      | 2021-01-02 |     2      |
+|      B      | 2021-01-04 |     1      |
+|      B      | 2021-01-11 |     1      |
+|      B      | 2021-01-16 |     3      |
+|      B      | 2021-02-01 |     3      |
+|      C      | 2021-01-01 |     3      |
+|      C      | 2021-01-01 |     3      |
+|      C      | 2021-01-07 |     3      |
 
 Table 2: `menu`
 
 | product_id | product_name | price |
-|:----------:|:------------:|:-----:|
-| 1          | sushi        | 10    |
-| 2          | curry        | 15    |
-| 3          | ramen        | 12    |
+| :--------: | :----------: | :---: |
+|     1      |    sushi     |  10   |
+|     2      |    curry     |  15   |
+|     3      |    ramen     |  12   |
 
 Table 3: `members`
 
-| customer_id |  join_date |
-|:-----------:|:----------:|
-| A           | 2021-01-07 |
-| B           | 2021-01-09 |
+| customer_id | join_date  |
+| :---------: | :--------: |
+|      A      | 2021-01-07 |
+|      B      | 2021-01-09 |
 
 
 [See the original here](https://8weeksqlchallenge.com/case-study-1/)
 
 ----
 
-### Questions:
+### 2. Questions:
 1. What is the total amount each customer spent at the restaurant?
 2. How many days has each customer visited the restaurant?
 3. What was the first item from the menu purchased by each customer?
@@ -59,3 +66,88 @@ Table 3: `members`
 8. What is the total items and amount spent for each member before they became a member?
 9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+
+#### 2.1. What is the total amount each customer spent at the restaurant?
+
+```sql
+SELECT 
+    customer_id, 
+    SUM(price) as price
+FROM dannys_diner.sales as s
+LEFT JOIN dannys_diner.menu as m
+ON s.product_id = m.product_id
+GROUP BY customer_id
+ORDER BY customer_id;
+```
+
+| customer_id | price |
+|------------:|------:|
+|           A |    76 |
+|           B |    74 |
+|           C |    36 |
+
+Customer A spend the most with £76 spent!
+
+#### 2.2. How many days has each customer visited the restaurant?
+
+```sql
+SELECT 
+    customer_id, 
+    COUNT(DISTINCT order_date)
+FROM dannys_diner.sales
+GROUP BY customer_id;
+```
+
+| customer_id | count |
+|------------:|------:|
+|           A |     4 |
+|           B |     6 |
+|           C |     2 |
+
+Another straightforward query, with customer B having the most visits at 6!
+
+#### 2.3. What was the first item from the menu purchased by each customer?
+
+```sql
+WITH sales_ranked AS (SELECT
+    customer_id,
+    order_date,
+    DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY order_date ASC) as rank,
+    product_id
+FROM dannys_diner.sales),
+
+first_purchase AS (SELECT
+    DISTINCT customer_id,
+    product_id
+FROM sales_ranked
+WHERE rank = 1)
+
+SELECT 
+    customer_id,
+    product_name
+FROM first_purchase as f
+LEFT JOIN dannys_diner.menu as m
+ON f.product_id = m.product_id
+ORDER BY customer_id;
+```
+
+| customer_id | product_name |
+|------------:|-------------:|
+|           A |        sushi |
+|           A |        curry |
+|           B |        curry |
+|           C |        ramen |
+
+Alright now the fun questions begin! 
+
+Not only are there many ways to get the first purchase, but customer `A` bought 2 items on their first visit to the restaurant. Therefore it may be wise to grab both from the table, hence using the `RANK` function.
+
+Steps:
+
+1. We create a table from `sales` and use a window function to rank the orders by date per customer
+2. Then I created another CTE to only grab the top ranked sales
+3. Finally I joined the `menu` table to grab the `product_name`.
+
+This likely could be improved by reducing the amount of CTE's but for now it's a straightforward solution.
+
+Actually it doesn't matter here whether we use `RANK` or `DENSE_RANK` because we're only interested in the first entry, or `RANK = 1`. However if we were dealing with anything past that we'd need to beware of the different behaviours of `RANK` and `DENSE_RANK`!
