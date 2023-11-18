@@ -1,13 +1,12 @@
 # 🍽️ Case Study #1 - Danny's Diner <!-- omit from toc -->
 
 - [1. Problem Statement](#1-problem-statement)
-- [2. Questions:](#2-questions)
-  - [2.1. What is the total amount each customer spent at the restaurant?](#21-what-is-the-total-amount-each-customer-spent-at-the-restaurant)
-  - [2.2. How many days has each customer visited the restaurant?](#22-how-many-days-has-each-customer-visited-the-restaurant)
-  - [2.3. What was the first item from the menu purchased by each customer?](#23-what-was-the-first-item-from-the-menu-purchased-by-each-customer)
-  - [2.4. What is the most purchased item on the menu and how many times was it purchased by all customers?](#24-what-is-the-most-purchased-item-on-the-menu-and-how-many-times-was-it-purchased-by-all-customers)
-  - [2.5. Which item was the most popular for each customer?](#25-which-item-was-the-most-popular-for-each-customer)
-  - [2.6. Which item was purchased first by the customer after they became a member?](#26-which-item-was-purchased-first-by-the-customer-after-they-became-a-member)
+  - [1.1. What is the total amount each customer spent at the restaurant?](#11-what-is-the-total-amount-each-customer-spent-at-the-restaurant)
+  - [1.2. How many days has each customer visited the restaurant?](#12-how-many-days-has-each-customer-visited-the-restaurant)
+  - [1.3. What was the first item from the menu purchased by each customer?](#13-what-was-the-first-item-from-the-menu-purchased-by-each-customer)
+  - [1.4. What is the most purchased item on the menu and how many times was it purchased by all customers?](#14-what-is-the-most-purchased-item-on-the-menu-and-how-many-times-was-it-purchased-by-all-customers)
+  - [1.5. Which item was the most popular for each customer?](#15-which-item-was-the-most-popular-for-each-customer)
+  - [1.6. Which item was purchased first by the customer after they became a member?](#16-which-item-was-purchased-first-by-the-customer-after-they-became-a-member)
 
 
 ### 1. Problem Statement
@@ -56,24 +55,10 @@ Table 3: `members`
 
 [See the original here](https://8weeksqlchallenge.com/case-study-1/)
 
-----
-
-### 2. Questions:
-1. What is the total amount each customer spent at the restaurant?
-2. How many days has each customer visited the restaurant?
-3. What was the first item from the menu purchased by each customer?
-4. What is the most purchased item on the menu and how many times was it purchased by all customers?
-5. Which item was the most popular for each customer?
-6. Which item was purchased first by the customer after they became a member?
-7. Which item was purchased just before the customer became a member?
-8. What is the total items and amount spent for each member before they became a member?
-9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-
 ----------
 
 
-#### 2.1. What is the total amount each customer spent at the restaurant?
+#### 1.1. What is the total amount each customer spent at the restaurant?
 
 ```sql
 SELECT 
@@ -96,7 +81,7 @@ Customer A spend the most with £76 spent!
 
 ----------
 
-#### 2.2. How many days has each customer visited the restaurant?
+#### 1.2. How many days has each customer visited the restaurant?
 
 ```sql
 SELECT 
@@ -117,7 +102,7 @@ Another straightforward query, with customer B having the most visits at 6!
 ----------
 
 
-#### 2.3. What was the first item from the menu purchased by each customer?
+#### 1.3. What was the first item from the menu purchased by each customer?
 
 ```sql
 WITH sales_ranked AS (SELECT
@@ -165,7 +150,7 @@ Actually it doesn't matter here whether we use `RANK` or `DENSE_RANK` because we
 
 ----------
 
-#### 2.4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+#### 1.4. What is the most purchased item on the menu and how many times was it purchased by all customers?
 
 ```sql
 SELECT
@@ -193,7 +178,7 @@ It seems 🍜 `ramen` was the winner!
 
 ----------
 
-#### 2.5. Which item was the most popular for each customer?
+#### 1.5. Which item was the most popular for each customer?
 
 ```sql
 WITH ranked_sales AS (SELECT 
@@ -235,7 +220,7 @@ Looks like customer `B` has a very diverse taste!
 
 ----------
 
-#### 2.6. Which item was purchased first by the customer after they became a member?
+#### 1.6. Which item was purchased first by the customer after they became a member?
 
 ```sql
 WITH first_order AS (SELECT
