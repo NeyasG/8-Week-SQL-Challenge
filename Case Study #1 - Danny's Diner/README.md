@@ -5,6 +5,9 @@
   - [2.1. What is the total amount each customer spent at the restaurant?](#21-what-is-the-total-amount-each-customer-spent-at-the-restaurant)
   - [2.2. How many days has each customer visited the restaurant?](#22-how-many-days-has-each-customer-visited-the-restaurant)
   - [2.3. What was the first item from the menu purchased by each customer?](#23-what-was-the-first-item-from-the-menu-purchased-by-each-customer)
+  - [2.4. What is the most purchased item on the menu and how many times was it purchased by all customers?](#24-what-is-the-most-purchased-item-on-the-menu-and-how-many-times-was-it-purchased-by-all-customers)
+  - [2.5. Which item was the most popular for each customer?](#25-which-item-was-the-most-popular-for-each-customer)
+  - [2.6. Which item was purchased first by the customer after they became a member?](#26-which-item-was-purchased-first-by-the-customer-after-they-became-a-member)
 
 
 ### 1. Problem Statement
@@ -67,6 +70,9 @@ Table 3: `members`
 9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
 10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
 
+----------
+
+
 #### 2.1. What is the total amount each customer spent at the restaurant?
 
 ```sql
@@ -88,6 +94,8 @@ ORDER BY customer_id;
 
 Customer A spend the most with £76 spent!
 
+----------
+
 #### 2.2. How many days has each customer visited the restaurant?
 
 ```sql
@@ -105,6 +113,9 @@ GROUP BY customer_id;
 |           C |     2 |
 
 Another straightforward query, with customer B having the most visits at 6!
+
+----------
+
 
 #### 2.3. What was the first item from the menu purchased by each customer?
 
@@ -151,3 +162,107 @@ Steps:
 This likely could be improved by reducing the amount of CTE's but for now it's a straightforward solution.
 
 Actually it doesn't matter here whether we use `RANK` or `DENSE_RANK` because we're only interested in the first entry, or `RANK = 1`. However if we were dealing with anything past that we'd need to beware of the different behaviours of `RANK` and `DENSE_RANK`!
+
+----------
+
+#### 2.4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+```sql
+SELECT
+    m.product_name,
+    COUNT(s.product_id) as orders
+FROM dannys_diner.sales as s
+LEFT JOIN dannys_diner.menu as m
+ON s.product_id = m.product_id
+GROUP BY m.product_name
+ORDER BY orders DESC
+LIMIT 1;
+```
+
+| product_name | orders |
+|-------------:|-------:|
+|        ramen |      8 |
+
+Another fairly straightforward solution. 
+
+1. Group by `product_name` (after merging `sales` with `menu`) and count the orders
+2. Then order by `order DESC`
+3. Limit to the top result `LIMIT 1`
+
+It seems 🍜 `ramen` was the winner!
+
+----------
+
+#### 2.5. Which item was the most popular for each customer?
+
+```sql
+WITH ranked_sales AS (SELECT 
+    customer_id,
+    product_id,
+    COUNT(product_id) as orders,
+    DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY COUNT(customer_id) DESC) as rank
+FROM dannys_diner.sales
+GROUP BY customer_id, product_id
+ORDER BY customer_id, rank)
+
+SELECT
+    r.customer_id,
+    product_name,
+    orders
+FROM ranked_sales as r
+LEFT JOIN dannys_diner.menu as m
+ON r.product_id = m.product_id
+WHERE rank = 1
+ORDER BY customer_id;
+```
+
+| customer_id | product_name | orders |
+|------------:|-------------:|-------:|
+|           A |        ramen |      3 |
+|           B |        sushi |      2 |
+|           B |        curry |      2 |
+|           B |        ramen |      2 |
+|           C |        ramen |      3 |
+
+I broke this problem down into 2 steps:
+
+1. Rank the items per customer
+2. Grab the highest ranked item for each customer
+
+Using the first CTE I not only use a window function to rank items by number of order per customer but I also need to track how many orders each customer has in a seperate column to display in the final table. Hence `COUNT(product_id) as orders`. Since we're grouping by customer_id and product_id this leaves only the last table to filter for the most popular items using our rank column and then grab the `product_name` from `menu`.
+
+Looks like customer `B` has a very diverse taste!
+
+----------
+
+#### 2.6. Which item was purchased first by the customer after they became a member?
+
+```sql
+WITH first_order AS (SELECT
+    DISTINCT ON (s.customer_id) s.customer_id,
+    s.product_id,
+    MIN(order_date) as order_date
+FROM dannys_diner.sales as s
+RIGHT JOIN dannys_diner.members as m
+ON s.customer_id = m.customer_id
+WHERE order_date >= join_date
+GROUP BY s.customer_id, s.product_id
+ORDER BY customer_id, order_date ASC)
+
+SELECT
+    customer_id,
+    product_name
+FROM first_order as f
+LEFT JOIN dannys_diner.menu as menu
+ON f.product_id = menu.product_id
+ORDER BY customer_id;
+```
+
+| customer_id | product_name |
+|------------:|-------------:|
+|           A |        curry |
+|           B |        sushi |
+
+A very interesting question, that I broke down like so:
+
+1. 
