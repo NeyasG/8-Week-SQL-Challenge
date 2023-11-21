@@ -11,8 +11,9 @@
   - [1.8. What is the total items and amount spent for each member before they became a member?](#18-what-is-the-total-items-and-amount-spent-for-each-member-before-they-became-a-member)
   - [1.9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?](#19-if-each-1-spent-equates-to-10-points-and-sushi-has-a-2x-points-multiplier---how-many-points-would-each-customer-have)
   - [1.10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?](#110-in-the-first-week-after-a-customer-joins-the-program-including-their-join-date-they-earn-2x-points-on-all-items-not-just-sushi---how-many-points-do-customer-a-and-b-have-at-the-end-of-january)
-- [Bonus Questions! Creating a helper table to track sales with some extra information](#bonus-questions-creating-a-helper-table-to-track-sales-with-some-extra-information)
-- [Bonus Question 2 - Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.](#bonus-question-2---danny-also-requires-further-information-about-the-ranking-of-customer-products-but-he-purposely-does-not-need-the-ranking-for-non-member-purchases-so-he-expects-null-ranking-values-for-the-records-when-customers-are-not-yet-part-of-the-loyalty-program)
+- [2. Bonus Questions!](#2-bonus-questions)
+  - [2.1. Creating a helper table to track sales with some extra information](#21-creating-a-helper-table-to-track-sales-with-some-extra-information)
+  - [2.2. Bonus Question 2 - Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.](#22-bonus-question-2---danny-also-requires-further-information-about-the-ranking-of-customer-products-but-he-purposely-does-not-need-the-ranking-for-non-member-purchases-so-he-expects-null-ranking-values-for-the-records-when-customers-are-not-yet-part-of-the-loyalty-program)
 
 
 ### 1. Problem Statement
@@ -409,7 +410,9 @@ P.S. US formatted dates are a nightmare 🤢 and I sincerely hope one day we all
 
 ----------
 
-### Bonus Questions! Creating a helper table to track sales with some extra information
+### 2. Bonus Questions!
+
+#### 2.1. Creating a helper table to track sales with some extra information
 
 ```sql
 SELECT
@@ -449,7 +452,7 @@ Another nice little `CASE` statement to help Danny out.
 
 ----------
 
-### Bonus Question 2 - Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.
+#### 2.2. Bonus Question 2 - Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.
 
 ```sql
 WITH sales_full AS (SELECT
