@@ -11,6 +11,8 @@
   - [1.8. What is the total items and amount spent for each member before they became a member?](#18-what-is-the-total-items-and-amount-spent-for-each-member-before-they-became-a-member)
   - [1.9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?](#19-if-each-1-spent-equates-to-10-points-and-sushi-has-a-2x-points-multiplier---how-many-points-would-each-customer-have)
   - [1.10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?](#110-in-the-first-week-after-a-customer-joins-the-program-including-their-join-date-they-earn-2x-points-on-all-items-not-just-sushi---how-many-points-do-customer-a-and-b-have-at-the-end-of-january)
+- [Bonus Questions! Creating a helper table to track sales with some extra information](#bonus-questions-creating-a-helper-table-to-track-sales-with-some-extra-information)
+- [Bonus Question 2 - Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.](#bonus-question-2---danny-also-requires-further-information-about-the-ranking-of-customer-products-but-he-purposely-does-not-need-the-ranking-for-non-member-purchases-so-he-expects-null-ranking-values-for-the-records-when-customers-are-not-yet-part-of-the-loyalty-program)
 
 
 ### 1. Problem Statement
@@ -404,3 +406,94 @@ GROUP BY customer_id;
 3. Finally a `WHERE` statement which only accepts customers if they are in the `members` table `AND` the `order_date < '2021-02-01'`
 
 P.S. US formatted dates are a nightmare 🤢 and I sincerely hope one day we all use the same format...
+
+----------
+
+### Bonus Questions! Creating a helper table to track sales with some extra information
+
+```sql
+SELECT
+    s.customer_id,
+    s.order_date,
+    menu.product_name,
+    menu.price,
+    CASE WHEN s.order_date >= members.join_date THEN 'Y'
+    ELSE 'N' END AS member
+FROM dannys_diner.sales as s
+LEFT JOIN dannys_diner.menu as menu
+ON s.product_id = menu.product_id
+LEFT JOIN dannys_diner.members as members
+ON s.customer_id = members.customer_id
+ORDER BY s.customer_id, s.order_date
+```
+
+| customer_id | order_date | product_name | price | member |
+|------------:|-----------:|-------------:|------:|-------:|
+|           A | 2021-01-01 |        sushi |    10 |      N |
+|           A | 2021-01-01 |        curry |    15 |      N |
+|           A | 2021-01-07 |        curry |    15 |      Y |
+|           A | 2021-01-10 |        ramen |    12 |      Y |
+|           A | 2021-01-11 |        ramen |    12 |      Y |
+|           A | 2021-01-11 |        ramen |    12 |      Y |
+|           B | 2021-01-01 |        curry |    15 |      N |
+|           B | 2021-01-02 |        curry |    15 |      N |
+|           B | 2021-01-04 |        sushi |    10 |      N |
+|           B | 2021-01-11 |        sushi |    10 |      Y |
+|           B | 2021-01-16 |        ramen |    12 |      Y |
+|           B | 2021-02-01 |        ramen |    12 |      Y |
+|           C | 2021-01-01 |        ramen |    12 |      N |
+|           C | 2021-01-01 |        ramen |    12 |      N |
+|           C | 2021-01-07 |        ramen |    12 |      N |
+
+Another nice little `CASE` statement to help Danny out.
+
+----------
+
+### Bonus Question 2 - Danny also requires further information about the ranking of customer products, but he purposely does not need the ranking for non-member purchases so he expects null ranking values for the records when customers are not yet part of the loyalty program.
+
+```sql
+WITH sales_full AS (SELECT
+    s.customer_id,
+    s.order_date,
+    menu.product_name,
+    menu.price,
+    CASE WHEN s.order_date >= members.join_date THEN 'Y'
+    ELSE 'N' END AS member
+FROM dannys_diner.sales as s
+LEFT JOIN dannys_diner.menu as menu
+ON s.product_id = menu.product_id
+LEFT JOIN dannys_diner.members as members
+ON s.customer_id = members.customer_id
+ORDER BY s.customer_id, s.order_date)
+
+SELECT
+    *,
+    CASE WHEN member = 'N' THEN NULL
+    ELSE RANK() OVER(PARTITION BY customer_id, member ORDER BY order_date)
+    END AS ranking
+FROM sales_full
+```
+
+| customer_id | order_date | product_name | price | member | ranking |
+|------------:|-----------:|-------------:|------:|-------:|--------:|
+|           A | 2021-01-01 |        sushi |    10 |      N |    None |
+|           A | 2021-01-01 |        curry |    15 |      N |    None |
+|           A | 2021-01-07 |        curry |    15 |      Y |       1 |
+|           A | 2021-01-10 |        ramen |    12 |      Y |       2 |
+|           A | 2021-01-11 |        ramen |    12 |      Y |       3 |
+|           A | 2021-01-11 |        ramen |    12 |      Y |       3 |
+|           B | 2021-01-01 |        curry |    15 |      N |    None |
+|           B | 2021-01-02 |        curry |    15 |      N |    None |
+|           B | 2021-01-04 |        sushi |    10 |      N |    None |
+|           B | 2021-01-11 |        sushi |    10 |      Y |       1 |
+|           B | 2021-01-16 |        ramen |    12 |      Y |       2 |
+|           B | 2021-02-01 |        ramen |    12 |      Y |       3 |
+|           C | 2021-01-01 |        ramen |    12 |      N |    None |
+|           C | 2021-01-01 |        ramen |    12 |      N |    None |
+|           C | 2021-01-07 |        ramen |    12 |      N |    None |
+
+Using the previous query, we can simply add a `RANK` window function to be able to keep track of the rank of each product per customer!
+
+----------
+
+Wow, you made it to the end! [Click Here](https://github.com/NeyasG/8-Week-SQL-Challenge/tree/main/Case%20Study%20%232%20-%20Pizza%20Runner) for the next case study.
