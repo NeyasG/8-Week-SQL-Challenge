@@ -7,6 +7,10 @@
   - [1.4. What is the most purchased item on the menu and how many times was it purchased by all customers?](#14-what-is-the-most-purchased-item-on-the-menu-and-how-many-times-was-it-purchased-by-all-customers)
   - [1.5. Which item was the most popular for each customer?](#15-which-item-was-the-most-popular-for-each-customer)
   - [1.6. Which item was purchased first by the customer after they became a member?](#16-which-item-was-purchased-first-by-the-customer-after-they-became-a-member)
+  - [1.7. Which item was purchased just before the customer became a member?](#17-which-item-was-purchased-just-before-the-customer-became-a-member)
+  - [1.8. What is the total items and amount spent for each member before they became a member?](#18-what-is-the-total-items-and-amount-spent-for-each-member-before-they-became-a-member)
+  - [1.9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?](#19-if-each-1-spent-equates-to-10-points-and-sushi-has-a-2x-points-multiplier---how-many-points-would-each-customer-have)
+  - [1.10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?](#110-in-the-first-week-after-a-customer-joins-the-program-including-their-join-date-they-earn-2x-points-on-all-items-not-just-sushi---how-many-points-do-customer-a-and-b-have-at-the-end-of-january)
 
 
 ### 1. Problem Statement
@@ -250,4 +254,153 @@ ORDER BY customer_id;
 
 A very interesting question, that I broke down like so:
 
-1. 
+1. Using `order date` and the `min` function in combination with the `WHERE` clause in the first CTE `first_order` to grab the earliest date after the `join_date`.
+2. Then using a little PostgreSQL trick with `DISTINCT ON` which is **PostgresQL specific** and can be used to grab the first record out of each group in a specific order. Read more [here](https://www.geekytidbits.com/postgres-distinct-on/).
+3. Finally I join `first_order` to `menu` and we get our answer.
+
+*Note - The answer could depend on how you define when a customer becomes a member. I chose to assume that if there was a sale on the same day that the customer became a member then that sale counts as the first purchase.*
+
+----------
+
+#### 1.7. Which item was purchased just before the customer became a member?
+
+```sql
+WITH last_order AS (SELECT
+    s.customer_id,
+    s.product_id,
+    MAX(order_date) as order_date,
+    RANK() OVER (PARTITION BY s.customer_id ORDER BY order_date DESC) as rank
+FROM dannys_diner.sales as s
+RIGHT JOIN dannys_diner.members as m
+ON s.customer_id = m.customer_id
+WHERE order_date < join_date
+GROUP BY s.customer_id, s.product_id, order_date
+ORDER BY customer_id, order_date DESC)
+
+SELECT
+    customer_id,
+    product_name
+FROM last_order as l
+LEFT JOIN dannys_diner.menu as menu
+ON l.product_id = menu.product_id
+WHERE rank = 1
+ORDER BY customer_id;
+```
+
+| customer_id | product_name |
+|------------:|-------------:|
+|           A |        sushi |
+|           A |        curry |
+|           B |        sushi |
+
+I took a different approach to this problem compared to the previous, opting to use a `RANK` window function to assign a rank to every sale ordered by date that occured before the `join_date` of the customer. I believe this gave a more accurate answer than just grabbing the first sale as customer `A` purchased 2 items on the same day.
+
+----------
+
+#### 1.8. What is the total items and amount spent for each member before they became a member?
+
+```sql
+SELECT
+    s.customer_id,
+    COUNT(s.customer_id) as items_purchased,
+    SUM(price) as total_spent
+FROM dannys_diner.sales as s
+LEFT JOIN dannys_diner.menu as m
+ON s.product_id = m.product_id
+LEFT JOIN dannys_diner.members as mem
+ON s.customer_id = mem.customer_id
+WHERE join_date IS NULL
+OR order_date < join_date
+GROUP BY s.customer_id
+ORDER BY customer_id;
+```
+
+| customer_id | items_purchased | total_spent |
+|------------:|----------------:|------------:|
+|           A |               2 |          25 |
+|           B |               3 |          40 |
+|           C |               3 |          36 |
+
+To answer this question I used a `JOIN` with a `WHERE` statement specifying that `order_date < join_date`. This results in a table with only sales that were made before the customer became a member, which is then easy to aggregate for the answer.
+
+----------
+
+#### 1.9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
+```sql
+SELECT
+    customer_id,
+    SUM(points) as points
+FROM dannys_diner.sales as s
+LEFT JOIN (
+    SELECT 
+        product_id,
+        price,
+        CASE WHEN product_id = 1 THEN price * 20
+        ELSE price * 10
+        END as points
+    FROM dannys_diner.menu
+    ) as points_menu
+ON s.product_id = points_menu.product_id
+GROUP BY customer_id
+ORDER BY customer_id;
+```
+
+| customer_id | points | total_spent |
+|------------:|-------:|------------:|
+|           A |    860 |          25 |
+|           B |    940 |          40 |
+|           C |    360 |          36 |
+
+This problem can be solved using the trusty `CASE` statement. Since we only have 1 product that has a different price, we can define that as our first case, and then use `ELSE` for all the remaining products. 
+
+It might be worth noting that for a real restaurant with many different products, adding a product multiplier to the `menu` table may be an easier and more scalable solution than hard-coding a `CASE` statement, as products can come and go on the menu.
+
+----------
+
+#### 1.10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+
+```sql
+WITH points_menu AS (
+    SELECT 
+        product_id,
+        price,
+        CASE WHEN product_id = 1 THEN price * 20
+        ELSE price * 10
+        END as points
+    FROM dannys_diner.menu),
+
+jan_adjusted_points AS (SELECT 
+    s.customer_id,
+    join_date,
+    order_date,
+    s.product_id,
+    pm.points,
+    CASE WHEN order_date BETWEEN join_date AND join_date + INTERVAL '7 day' THEN points * 2
+    ELSE points END as member_points
+FROM dannys_diner.sales as s
+LEFT JOIN points_menu as pm
+ON s.product_id = pm.product_id
+LEFT JOIN dannys_diner.members as mem
+ON s.customer_id = mem.customer_id
+WHERE s.customer_id IN (SELECT customer_id FROM dannys_diner.members)
+AND order_date < '2021-02-01'
+ORDER BY s.customer_id, order_date)
+
+SELECT
+    customer_id,
+    SUM(member_points)
+FROM jan_adjusted_points
+GROUP BY customer_id;
+```
+
+| customer_id |  sum |
+|------------:|-----:|
+|           A | 1370 |
+|           B | 1140 |
+
+1. Using the point mentioned in the previous solution I solved this question by creating a column called `points` from the `menu` table
+2. Then multiplying the points by using a `CASE` statement to check whether the date lies between the `join_date` and `join_date + INTERVAL '7 day'` lets us define the 1 week window where points are worth double
+3. Finally a `WHERE` statement which only accepts customers if they are in the `members` table `AND` the `order_date < '2021-02-01'`
+
+P.S. US formatted dates are a nightmare 🤢 and I sincerely hope one day we all use the same format...
