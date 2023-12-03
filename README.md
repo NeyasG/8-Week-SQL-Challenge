@@ -6,8 +6,8 @@ All the case studies can be found [here](https://8weeksqlchallenge.com/) alongsi
 
 # ✔️ Case Studies
 
-* **[# 1 - Danny's Diner](https://github.com/NeyasG/8-Week-SQL-Challenge/tree/main/Case%20Study%20%231%20-%20Danny's%20Diner)**
-* **[#2 - Pizza Runner *WIP*](https://github.com/NeyasG/8-Week-SQL-Challenge/tree/main/Case%20Study%20%232%20-%20Pizza%20Runner)**
+* **[# 1 - Danny's Diner](https://github.com/NeyasG/8-Week-SQL-Challenge/tree/main/Case_Study_%231_Danny's_Diner)**
+* **[#2 - Pizza Runner *WIP*](https://github.com/NeyasG/8-Week-SQL-Challenge/tree/main/Case_Study_%232_Pizza_Runner)**
 * #3 Foodie-Fi *Coming Soon!*
 * #4 Data Bank *Coming Soon!*
 * #5 Data Mart *Coming Soon!*
